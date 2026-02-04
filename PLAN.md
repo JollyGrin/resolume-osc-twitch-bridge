@@ -6,12 +6,12 @@
 
 ## Phase 0: Project Setup
 
-- [ ] **0.1 Initialize Go module**
+- [x] **0.1 Initialize Go module**
   ```bash
   go mod init github.com/waterhouse/resolume-twitch-osc
   ```
 
-- [ ] **0.2 Create directory structure**
+- [x] **0.2 Create directory structure**
   ```
   cmd/spike/
   cmd/bridge/
@@ -22,7 +22,7 @@
   internal/tui/
   ```
 
-- [ ] **0.3 Create config.example.yaml**
+- [x] **0.3 Create config.example.yaml**
   - OSC host/port settings
   - WebSocket URL
   - Event mappings with templates
@@ -33,12 +33,12 @@
 
 Goal: Verify we can send text to Resolume from Go.
 
-- [ ] **1.1 Install go-osc dependency**
+- [x] **1.1 Install go-osc dependency**
   ```bash
   go get github.com/hypebeast/go-osc/osc
   ```
 
-- [ ] **1.2 Create minimal spike** (`cmd/spike/main.go`)
+- [x] **1.2 Create minimal spike** (`cmd/spike/main.go`)
   - Connect to localhost:7000
   - Send text to Layer 1, Clip 1
   - Send trigger to play clip
@@ -60,12 +60,12 @@ Goal: Verify we can send text to Resolume from Go.
 
 ## Phase 2: Config System
 
-- [ ] **2.1 Install yaml dependency**
+- [x] **2.1 Install yaml dependency**
   ```bash
   go get gopkg.in/yaml.v3
   ```
 
-- [ ] **2.2 Create config structs** (`internal/config/config.go`)
+- [x] **2.2 Create config structs** (`internal/config/config.go`)
   ```go
   type Config struct {
       WebSocket WebSocketConfig
@@ -74,42 +74,42 @@ Goal: Verify we can send text to Resolume from Go.
   }
   ```
 
-- [ ] **2.3 Create config loader**
+- [x] **2.3 Create config loader**
   - Load from `./config.yaml`
   - Validate required fields
   - Return typed config
 
-- [ ] **2.4 Create config.example.yaml with all event mappings**
+- [x] **2.4 Create config.example.yaml with all event mappings**
 
 ---
 
 ## Phase 3: OSC Client Wrapper
 
-- [ ] **3.1 Create OSC client** (`internal/osc/client.go`)
+- [x] **3.1 Create OSC client** (`internal/osc/client.go`)
   - Wrap hypebeast/go-osc
   - Method: `SendText(address, text string)`
   - Method: `SendTrigger(address string)`
 
-- [ ] **3.2 Add error handling**
+- [x] **3.2 Add error handling**
   - Log send failures (UDP is fire-and-forget, but log anyway)
 
 ---
 
 ## Phase 4: WebSocket Client
 
-- [ ] **4.1 Install gorilla/websocket**
+- [x] **4.1 Install gorilla/websocket**
   ```bash
   go get github.com/gorilla/websocket
   ```
 
-- [ ] **4.2 Create WebSocket client** (`internal/websocket/client.go`)
+- [x] **4.2 Create WebSocket client** (`internal/websocket/client.go`)
   - Connect to configured URL
   - Read-only (no sending)
   - Return messages via channel
 
   **Research**: [gorilla/websocket examples](https://github.com/gorilla/websocket/tree/main/examples)
 
-- [ ] **4.3 Add reconnection logic**
+- [x] **4.3 Add reconnection logic**
   - Exponential backoff: 1s → 2s → 4s → ... → 30s max
   - Emit connection state changes
 
@@ -124,7 +124,7 @@ Goal: Verify we can send text to Resolume from Go.
   }
   ```
 
-- [ ] **4.4 Handle ping/pong keepalive**
+- [x] **4.4 Handle ping/pong keepalive**
   - Server sends ping every 54s
   - Client must respond with pong
 
@@ -132,18 +132,18 @@ Goal: Verify we can send text to Resolume from Go.
 
 ## Phase 5: Event System
 
-- [ ] **5.1 Create event types** (`internal/events/types.go`)
+- [x] **5.1 Create event types** (`internal/events/types.go`)
   - Base envelope: `type`, `data`, `timestamp`
   - Follow event struct
 
   **Research**: See `docs/draft_websocket-to-resolume.md` for schemas
 
-- [ ] **5.2 Create event parser** (`internal/events/parser.go`)
+- [x] **5.2 Create event parser** (`internal/events/parser.go`)
   - Parse JSON envelope
   - Route by `type` field
   - Return typed event
 
-- [ ] **5.3 Create event handler for Follow** (`internal/events/handlers.go`)
+- [x] **5.3 Create event handler for Follow** (`internal/events/handlers.go`)
   - Extract `user_name` from follow event
   - Apply template: `"{user_name} just followed!"`
   - Call OSC client to send text + trigger
@@ -156,14 +156,14 @@ Goal: Verify we can send text to Resolume from Go.
 
 ## Phase 6: Basic TUI
 
-- [ ] **6.1 Install bubbletea**
+- [x] **6.1 Install bubbletea**
   ```bash
   go get github.com/charmbracelet/bubbletea
   go get github.com/charmbracelet/bubbles
   go get github.com/charmbracelet/lipgloss
   ```
 
-- [ ] **6.2 Create TUI model** (`internal/tui/model.go`)
+- [x] **6.2 Create TUI model** (`internal/tui/model.go`)
   ```go
   type model struct {
       connectionStatus string  // "connected", "disconnected", "reconnecting"
@@ -174,16 +174,16 @@ Goal: Verify we can send text to Resolume from Go.
 
   **Research**: [bubbletea realtime example](https://github.com/charmbracelet/bubbletea/blob/main/examples/realtime/main.go)
 
-- [ ] **6.3 Create TUI view**
+- [x] **6.3 Create TUI view**
   - Connection status with color indicator
   - Scrollable event log
   - Quit instruction (q to quit)
 
-- [ ] **6.4 Wire WebSocket events to TUI**
+- [x] **6.4 Wire WebSocket events to TUI**
   - Channel from WebSocket client → TUI updates
   - Pattern: `waitForActivity()` command
 
-- [ ] **6.5 Add test trigger**
+- [x] **6.5 Add test trigger**
   - Press 't' to send test follow event
   - Useful for testing without real Twitch events
 
@@ -191,14 +191,14 @@ Goal: Verify we can send text to Resolume from Go.
 
 ## Phase 7: Main Application
 
-- [ ] **7.1 Create main entrypoint** (`cmd/bridge/main.go`)
+- [x] **7.1 Create main entrypoint** (`cmd/bridge/main.go`)
   - Load config
   - Initialize OSC client
   - Initialize WebSocket client
   - Initialize TUI
   - Wire everything together
 
-- [ ] **7.2 Add graceful shutdown**
+- [x] **7.2 Add graceful shutdown**
   - Handle Ctrl+C
   - Close WebSocket cleanly
 
@@ -211,24 +211,24 @@ Goal: Verify we can send text to Resolume from Go.
 
 ## Phase 8: Remaining Events
 
-- [ ] **8.1 Add subscribe event handler**
+- [x] **8.1 Add subscribe event handler**
   - Template: `"{user_name} subscribed (Tier {tier})!"`
 
-- [ ] **8.2 Add gift_sub event handler**
+- [x] **8.2 Add gift_sub event handler**
   - Template: `"{user_name} gifted {total} subs!"`
   - Handle anonymous gifters
 
-- [ ] **8.3 Add cheer event handler**
+- [x] **8.3 Add cheer event handler**
   - Template: `"{user_name} cheered {bits} bits!"`
   - Handle anonymous cheers
 
-- [ ] **8.4 Add raid event handler**
+- [x] **8.4 Add raid event handler**
   - Template: `"{from_broadcaster_user_name} raided with {viewers} viewers!"`
 
-- [ ] **8.5 Add chat event handler** (optional for MVP)
+- [x] **8.5 Add chat event handler** (optional for MVP)
   - Template: `"{chatter_user_name}: {message.text}"`
 
-- [ ] **8.6 Add stream_start/stream_end handlers**
+- [x] **8.6 Add stream_start/stream_end handlers**
 
 ---
 

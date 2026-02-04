@@ -1,0 +1,14 @@
+# Binaries
+bin/
+*.exe
+
+# Local config (contains secrets)
+config.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store

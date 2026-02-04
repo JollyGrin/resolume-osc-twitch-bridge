@@ -1,0 +1,53 @@
+# Resolume Twitch OSC Bridge Configuration
+
+websocket:
+  url: "wss://twitch-api.waterhousestudios.nl/ws"
+
+osc:
+  host: "127.0.0.1"
+  port: 7000
+
+# Event mappings: event type -> OSC output
+# Each mapping has:
+#   - layer/clip: Resolume layer and clip to trigger
+#   - template: Text template with {field} placeholders
+mappings:
+  follow:
+    layer: 1
+    clip: 1
+    template: "{user_name} just followed!"
+
+  subscribe:
+    layer: 1
+    clip: 1
+    template: "{user_name} subscribed (Tier {tier})!"
+
+  gift_sub:
+    layer: 1
+    clip: 1
+    template: "{user_name} gifted {total} subs!"
+
+  cheer:
+    layer: 1
+    clip: 1
+    template: "{user_name} cheered {bits} bits!"
+
+  raid:
+    layer: 1
+    clip: 1
+    template: "{from_broadcaster_user_name} raided with {viewers} viewers!"
+
+  chat:
+    layer: 1
+    clip: 2
+    template: "{chatter_user_name}: {message_text}"
+
+  stream_start:
+    layer: 1
+    clip: 1
+    template: "Stream is LIVE!"
+
+  stream_end:
+    layer: 1
+    clip: 1
+    template: "Stream ended. Thanks for watching!"
