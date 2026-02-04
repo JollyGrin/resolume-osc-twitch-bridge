@@ -42,9 +42,16 @@ Edit `config.yaml` with your settings.
 go run ./cmd/bridge
 ```
 
+### TUI Controls
+
+| Key | Action |
+|-----|--------|
+| `t` | Send test event to Resolume |
+| `q` | Quit |
+
 ## Configuration
 
-Configuration is stored in `config.yaml` in the same directory as the binary:
+Configuration is stored in `config.yaml` in the project directory:
 
 ```yaml
 websocket:
@@ -56,10 +63,28 @@ osc:
 
 mappings:
   follow:
-    trigger_address: "/composition/layers/1/clips/1/connect"
-    text_address: "/composition/layers/1/clips/1/video/source/textgenerator/params/text/value"
+    layer: 1
+    clip: 1
     template: "{user_name} just followed!"
+  subscribe:
+    layer: 1
+    clip: 1
+    template: "{user_name} subscribed (Tier {tier})!"
+  # See config.example.yaml for all event mappings
 ```
+
+### Event Templates
+
+Templates support these placeholders:
+
+| Event | Placeholders |
+|-------|-------------|
+| `follow` | `{user_name}` |
+| `subscribe` | `{user_name}`, `{tier}` |
+| `gift_sub` | `{user_name}`, `{total}`, `{tier}` |
+| `cheer` | `{user_name}`, `{bits}`, `{message}` |
+| `raid` | `{from_broadcaster_user_name}`, `{viewers}` |
+| `chat` | `{chatter_user_name}`, `{message_text}` |
 
 ## Development
 
@@ -68,14 +93,16 @@ mappings:
 ```
 .
 ├── cmd/
-│   └── bridge/          # Main application entry point
+│   ├── bridge/          # Main application entry point
+│   └── spike/           # OSC connectivity test
 ├── internal/
 │   ├── config/          # YAML config loading
 │   ├── osc/             # OSC client wrapper
-│   ├── websocket/       # WebSocket client
-│   ├── events/          # Event parsing and routing
+│   ├── websocket/       # WebSocket client with auto-reconnect
+│   ├── events/          # Event parsing, types, and handlers
 │   └── tui/             # Bubbletea TUI
-├── config.yaml          # Runtime configuration
+├── config.yaml          # Runtime configuration (not in git)
+├── config.example.yaml  # Example configuration
 └── docs/
     ├── resolume-setup.md
     └── research/

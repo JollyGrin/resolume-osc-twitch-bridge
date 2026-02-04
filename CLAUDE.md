@@ -57,4 +57,15 @@ Envelope: `{"type": "<event>", "data": {...}, "timestamp": number}`
 
 ## Current Phase
 
-MVP: Follow event only → then expand to all events
+MVP complete. All event handlers implemented. Remaining: manual testing and polish (Phase 9).
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `cmd/bridge/main.go` | Main app - wires config, OSC, WebSocket, TUI |
+| `cmd/spike/main.go` | Standalone OSC test |
+| `internal/events/handlers.go` | Event → OSC text formatting |
+| `internal/events/types.go` | Twitch event structs |
+| `internal/websocket/client.go` | Auto-reconnecting WebSocket |
+| `internal/tui/model.go` | Bubbletea UI model |
