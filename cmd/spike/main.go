@@ -24,7 +24,7 @@ func main() {
 	client := osc.NewClient(host, port)
 
 	// Set text on Layer 1, Clip 1
-	textAddr := "/composition/layers/1/clips/1/video/source/textgenerator/params/text/value"
+	textAddr := "/composition/layers/1/clips/1/video/effects/textblock/effect/text/params/lines"
 	textMsg := osc.NewMessage(textAddr)
 	textMsg.Append("Test from Go!")
 
