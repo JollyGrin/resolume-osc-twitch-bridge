@@ -48,7 +48,7 @@ func (c *Client) SendTrigger(address string) error {
 // This is the main method for displaying text overlays in Resolume.
 func (c *Client) TriggerClipWithText(layer, clip int, text string) error {
 	// Set the text
-	textAddr := fmt.Sprintf("/composition/layers/%d/clips/%d/video/source/textgenerator/params/text/value", layer, clip)
+	textAddr := fmt.Sprintf("/composition/layers/%d/clips/%d/video/effects/textblock/effect/text/params/lines", layer, clip)
 	if err := c.SendText(textAddr, text); err != nil {
 		return err
 	}

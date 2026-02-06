@@ -58,16 +58,18 @@ While the clip is selected, adjust:
 
 ## 3. Verify the OSC Address
 
-The OSC address for your text clip will be:
+The OSC address for your Text Block clip will be:
 
 ```
-/composition/layers/1/clips/1/video/source/textgenerator/params/text/value
+/composition/layers/1/clips/1/video/effects/textblock/effect/text/params/lines
 ```
 
 To trigger (play) the clip:
 ```
 /composition/layers/1/clips/1/connect
 ```
+
+**Important**: OSC addresses vary by source type. Use Resolume's Shortcuts panel to find the exact address for your setup (see Troubleshooting).
 
 ### Finding OSC Addresses in Resolume
 
@@ -123,6 +125,11 @@ For a clean setup, organize your layers:
 1. Ensure the clip has a **Text Block** or **Text Animator** source
 2. The clip must exist at the specified layer/clip position
 3. Try triggering the clip first, then setting text
+4. **OSC address may be wrong** - use Shortcuts panel to find the correct address:
+   - View → Shortcuts (or `Cmd+Shift+S`)
+   - Select your text clip
+   - Find the Text parameter and check its OSC address
+   - Different sources have different paths (e.g., `textblock` vs `textgenerator`)
 
 ### Clip Not Playing?
 

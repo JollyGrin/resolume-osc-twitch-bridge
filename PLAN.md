@@ -46,12 +46,12 @@ Goal: Verify we can send text to Resolume from Go.
   **Research**: [hypebeast/go-osc README](https://github.com/hypebeast/go-osc)
   ```go
   client := osc.NewClient("127.0.0.1", 7000)
-  msg := osc.NewMessage("/composition/layers/1/clips/1/video/source/textgenerator/params/text/value")
+  msg := osc.NewMessage("/composition/layers/1/clips/1/video/effects/textblock/effect/text/params/lines")
   msg.Append("Test from Go!")
   client.Send(msg)
   ```
 
-- [ ] **1.3 Test spike with Resolume**
+- [x] **1.3 Test spike with Resolume**
   - Resolume running, OSC enabled on port 7000
   - Text clip exists on Layer 1, Clip 1
   - Run spike, verify text appears

@@ -36,8 +36,8 @@ internal/tui/    - Bubbletea UI
 # Trigger clip (Layer 1, Clip 1)
 /composition/layers/1/clips/1/connect  → int 1
 
-# Set text on clip's text source
-/composition/layers/1/clips/1/video/source/textgenerator/params/text/value → string
+# Set text on clip's Text Block effect
+/composition/layers/1/clips/1/video/effects/textblock/effect/text/params/lines → string
 ```
 
 ## WebSocket Events
