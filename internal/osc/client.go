@@ -63,3 +63,16 @@ func (c *Client) TriggerClip(layer, clip int) error {
 	triggerAddr := fmt.Sprintf("/composition/layers/%d/clips/%d/connect", layer, clip)
 	return c.SendTrigger(triggerAddr)
 }
+
+// DisconnectClip disconnects a clip by sending value 0 to its connect address.
+func (c *Client) DisconnectClip(layer, clip int) error {
+	addr := fmt.Sprintf("/composition/layers/%d/clips/%d/connect", layer, clip)
+	msg := osc.NewMessage(addr)
+	msg.Append(int32(0))
+
+	if err := c.client.Send(msg); err != nil {
+		log.Printf("OSC disconnect clip failed: %v", err)
+		return fmt.Errorf("disconnecting clip at %s: %w", addr, err)
+	}
+	return nil
+}

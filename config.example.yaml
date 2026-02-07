@@ -7,12 +7,18 @@ osc:
   host: "127.0.0.1"
   port: 7000
 
+# Default settings for event mappings
+defaults:
+  debounce: "8s" # Time before clips are disconnected/cleared
+
 # Event mappings: event type -> OSC actions
-# Each mapping has a list of actions:
-#   - layer/clip: Resolume layer and clip to trigger
-#   - template: Text template with {field} placeholders (optional)
 #
-# If template is omitted, the clip is triggered without setting text.
+# Each mapping supports:
+#   actions:         List of clips to trigger
+#     - layer/clip:  Resolume layer and clip number
+#     - template:    Text template with {field} placeholders (optional)
+#   debounce:        Override default debounce duration (optional, e.g. "15s")
+#   return_to_scene: Set to false to disable auto-disconnect (default: true)
 mappings:
   follow:
     actions:
@@ -41,16 +47,18 @@ mappings:
         template: "{user_name}\nGave {bits} Bits!"
 
   raid:
+    debounce: "15s" # Raids stay visible longer
     actions:
       - layer: 1
         clip: 1
         template: "{from_broadcaster_user_name}\nRaided with {viewers}!"
 
   chat:
+    return_to_scene: false # Chat stays visible until next message
     actions:
       - layer: 1
         clip: 2
-        template: "{chatter_user_name}: {message_text}"
+        template: "{chatter_user_name}:\n{message_text}"
 
   stream_start:
     actions:

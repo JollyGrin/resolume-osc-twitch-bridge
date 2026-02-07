@@ -33,7 +33,7 @@ func main() {
 	oscClient := osc.NewClient(cfg.OSC.Host, cfg.OSC.Port)
 
 	// Initialize event handler
-	eventHandler := events.NewHandler(oscClient, cfg.Mappings)
+	eventHandler := events.NewHandler(oscClient, cfg.Mappings, cfg.Defaults)
 
 	// Initialize WebSocket client
 	wsClient := websocket.NewClient(cfg.WebSocket.URL)
@@ -106,6 +106,7 @@ func main() {
 	}
 
 	// Cleanup
+	eventHandler.Close()
 	wsClient.Close()
 	time.Sleep(100 * time.Millisecond) // Allow cleanup
 }

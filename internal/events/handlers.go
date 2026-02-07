@@ -10,16 +10,25 @@ import (
 
 // Handler processes events and sends OSC messages.
 type Handler struct {
-	osc      *osc.Client
-	mappings map[string]config.EventMapping
+	osc             *osc.Client
+	mappings        map[string]config.EventMapping
+	defaults        config.Defaults
+	debounceManager *DebounceManager
 }
 
 // NewHandler creates a new event handler.
-func NewHandler(oscClient *osc.Client, mappings map[string]config.EventMapping) *Handler {
+func NewHandler(oscClient *osc.Client, mappings map[string]config.EventMapping, defaults config.Defaults) *Handler {
 	return &Handler{
-		osc:      oscClient,
-		mappings: mappings,
+		osc:             oscClient,
+		mappings:        mappings,
+		defaults:        defaults,
+		debounceManager: NewDebounceManager(oscClient),
 	}
+}
+
+// Close cleans up resources. Call on shutdown.
+func (h *Handler) Close() {
+	h.debounceManager.CancelAll()
 }
 
 // Handle processes an event and sends the appropriate OSC messages.
@@ -31,6 +40,8 @@ func (h *Handler) Handle(event *Event) (string, error) {
 	}
 
 	var firstText string
+	var triggeredClips []struct{ layer, clip int }
+
 	for _, action := range mapping.Actions {
 		if action.Template != "" {
 			text := h.formatText(event, action.Template)
@@ -48,6 +59,15 @@ func (h *Handler) Handle(event *Event) (string, error) {
 			if err := h.osc.TriggerClip(action.Layer, action.Clip); err != nil {
 				return "", fmt.Errorf("triggering clip for %s: %w", event.Type, err)
 			}
+		}
+		triggeredClips = append(triggeredClips, struct{ layer, clip int }{action.Layer, action.Clip})
+	}
+
+	// Schedule debounce for triggered clips if return_to_scene is enabled
+	if mapping.ShouldReturnToScene() {
+		debounce := mapping.GetDebounce(h.defaults.Debounce)
+		for _, tc := range triggeredClips {
+			h.debounceManager.Schedule(tc.layer, tc.clip, debounce)
 		}
 	}
 

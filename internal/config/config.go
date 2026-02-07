@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -12,7 +13,35 @@ import (
 type Config struct {
 	WebSocket WebSocketConfig          `yaml:"websocket"`
 	OSC       OSCConfig                `yaml:"osc"`
+	Defaults  Defaults                 `yaml:"defaults"`
 	Mappings  map[string]EventMapping `yaml:"mappings"`
+}
+
+// Defaults holds default values for event mappings.
+type Defaults struct {
+	Debounce Duration `yaml:"debounce"`
+}
+
+// Duration wraps time.Duration for YAML unmarshaling.
+type Duration time.Duration
+
+// UnmarshalYAML parses duration strings like "8s", "5m", etc.
+func (d *Duration) UnmarshalYAML(node *yaml.Node) error {
+	var s string
+	if err := node.Decode(&s); err != nil {
+		return err
+	}
+	parsed, err := time.ParseDuration(s)
+	if err != nil {
+		return fmt.Errorf("invalid duration %q: %w", s, err)
+	}
+	*d = Duration(parsed)
+	return nil
+}
+
+// Duration returns the time.Duration value.
+func (d Duration) Duration() time.Duration {
+	return time.Duration(d)
 }
 
 // WebSocketConfig holds WebSocket connection settings.
@@ -28,7 +57,9 @@ type OSCConfig struct {
 
 // EventMapping defines how an event type maps to Resolume OSC.
 type EventMapping struct {
-	Actions []Action `yaml:"actions"`
+	Actions       []Action  `yaml:"actions"`
+	Debounce      *Duration `yaml:"debounce,omitempty"`       // Override default debounce
+	ReturnToScene *bool     `yaml:"return_to_scene,omitempty"` // Default true, set false to disable
 }
 
 // Action defines a single OSC action (trigger a clip, optionally with text).
@@ -36,6 +67,22 @@ type Action struct {
 	Layer    int    `yaml:"layer"`
 	Clip     int    `yaml:"clip"`
 	Template string `yaml:"template,omitempty"` // Optional: if empty, just triggers clip
+}
+
+// GetDebounce returns the effective debounce duration for this mapping.
+func (m *EventMapping) GetDebounce(defaultDebounce Duration) time.Duration {
+	if m.Debounce != nil {
+		return m.Debounce.Duration()
+	}
+	return defaultDebounce.Duration()
+}
+
+// ShouldReturnToScene returns whether this event should trigger a return after debounce.
+func (m *EventMapping) ShouldReturnToScene() bool {
+	if m.ReturnToScene != nil {
+		return *m.ReturnToScene
+	}
+	return true // default to true
 }
 
 // Load reads configuration from the specified file path.
