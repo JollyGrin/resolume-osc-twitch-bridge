@@ -28,9 +28,14 @@ type OSCConfig struct {
 
 // EventMapping defines how an event type maps to Resolume OSC.
 type EventMapping struct {
+	Actions []Action `yaml:"actions"`
+}
+
+// Action defines a single OSC action (trigger a clip, optionally with text).
+type Action struct {
 	Layer    int    `yaml:"layer"`
 	Clip     int    `yaml:"clip"`
-	Template string `yaml:"template"`
+	Template string `yaml:"template,omitempty"` // Optional: if empty, just triggers clip
 }
 
 // Load reads configuration from the specified file path.

@@ -57,3 +57,9 @@ func (c *Client) TriggerClipWithText(layer, clip int, text string) error {
 	triggerAddr := fmt.Sprintf("/composition/layers/%d/clips/%d/connect", layer, clip)
 	return c.SendTrigger(triggerAddr)
 }
+
+// TriggerClip triggers a clip without setting text.
+func (c *Client) TriggerClip(layer, clip int) error {
+	triggerAddr := fmt.Sprintf("/composition/layers/%d/clips/%d/connect", layer, clip)
+	return c.SendTrigger(triggerAddr)
+}

@@ -7,47 +7,59 @@ osc:
   host: "127.0.0.1"
   port: 7000
 
-# Event mappings: event type -> OSC output
-# Each mapping has:
+# Event mappings: event type -> OSC actions
+# Each mapping has a list of actions:
 #   - layer/clip: Resolume layer and clip to trigger
-#   - template: Text template with {field} placeholders
+#   - template: Text template with {field} placeholders (optional)
+#
+# If template is omitted, the clip is triggered without setting text.
 mappings:
   follow:
-    layer: 1
-    clip: 1
-    template: "{user_name} just followed!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "{user_name}\nFollowed!"
+      - layer: 2
+        clip: 1
 
   subscribe:
-    layer: 1
-    clip: 1
-    template: "{user_name} subscribed (Tier {tier})!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "{user_name}\nSubscribed!"
 
   gift_sub:
-    layer: 1
-    clip: 1
-    template: "{user_name} gifted {total} subs!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "{user_name}\nGifted {total} Subs!"
 
   cheer:
-    layer: 1
-    clip: 1
-    template: "{user_name} cheered {bits} bits!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "{user_name}\nGave {bits} Bits!"
 
   raid:
-    layer: 1
-    clip: 1
-    template: "{from_broadcaster_user_name} raided with {viewers} viewers!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "{from_broadcaster_user_name}\nRaided with {viewers}!"
 
   chat:
-    layer: 1
-    clip: 2
-    template: "{chatter_user_name}: {message_text}"
+    actions:
+      - layer: 1
+        clip: 2
+        template: "{chatter_user_name}: {message_text}"
 
   stream_start:
-    layer: 1
-    clip: 1
-    template: "Stream is LIVE!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "Stream is LIVE!"
 
   stream_end:
-    layer: 1
-    clip: 1
-    template: "Stream ended. Thanks for watching!"
+    actions:
+      - layer: 1
+        clip: 1
+        template: "Stream ended. Thanks for watching!"

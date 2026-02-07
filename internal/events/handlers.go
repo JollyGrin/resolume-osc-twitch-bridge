@@ -22,24 +22,36 @@ func NewHandler(oscClient *osc.Client, mappings map[string]config.EventMapping) 
 	}
 }
 
-// Handle processes an event and sends the appropriate OSC message.
-// Returns the formatted text that was sent, or empty string if no mapping exists.
+// Handle processes an event and sends the appropriate OSC messages.
+// Returns the formatted text from the first action with a template, or empty string if no mapping exists.
 func (h *Handler) Handle(event *Event) (string, error) {
 	mapping, ok := h.mappings[event.Type]
 	if !ok {
 		return "", nil // No mapping for this event type
 	}
 
-	text := h.formatText(event, mapping.Template)
-	if text == "" {
-		return "", nil
+	var firstText string
+	for _, action := range mapping.Actions {
+		if action.Template != "" {
+			text := h.formatText(event, action.Template)
+			if text == "" {
+				continue
+			}
+			if firstText == "" {
+				firstText = text
+			}
+			if err := h.osc.TriggerClipWithText(action.Layer, action.Clip, text); err != nil {
+				return "", fmt.Errorf("sending OSC for %s: %w", event.Type, err)
+			}
+		} else {
+			// No template, just trigger the clip
+			if err := h.osc.TriggerClip(action.Layer, action.Clip); err != nil {
+				return "", fmt.Errorf("triggering clip for %s: %w", event.Type, err)
+			}
+		}
 	}
 
-	if err := h.osc.TriggerClipWithText(mapping.Layer, mapping.Clip, text); err != nil {
-		return "", fmt.Errorf("sending OSC for %s: %w", event.Type, err)
-	}
-
-	return text, nil
+	return firstText, nil
 }
 
 // formatText applies the template for the event type.
