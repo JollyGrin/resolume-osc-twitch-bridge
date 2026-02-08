@@ -28,7 +28,7 @@ func NewDebounceManager(oscClient *osc.Client, group int, soloEnabled bool) *Deb
 	}
 }
 
-// SoloGroupIfNeeded solos and unbypasses the group if not already done.
+// SoloGroupIfNeeded solos and unbypasses the group.
 // Call this before triggering clips for non-chat events.
 func (dm *DebounceManager) SoloGroupIfNeeded() {
 	if !dm.soloEnabled {
@@ -38,24 +38,19 @@ func (dm *DebounceManager) SoloGroupIfNeeded() {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
-	// Unbypass the group if it was bypassed
-	if dm.groupBypassed {
-		if err := dm.osc.BypassGroup(dm.group, false); err != nil {
-			log.Printf("failed to unbypass group: %v", err)
-		} else {
-			log.Printf("group %d unbypassed", dm.group)
-			dm.groupBypassed = false
-		}
+	// Solo first, then unbypass (with small delay to avoid UDP packet issues)
+	if err := dm.osc.SoloGroup(dm.group, true); err != nil {
+		log.Printf("failed to solo group: %v", err)
+	} else {
+		dm.groupSoloed = true
 	}
 
-	// Solo the group if not already solo'd
-	if !dm.groupSoloed {
-		if err := dm.osc.SoloGroup(dm.group, true); err != nil {
-			log.Printf("failed to solo group: %v", err)
-		} else {
-			log.Printf("solo: group %d solo'd", dm.group)
-			dm.groupSoloed = true
-		}
+	time.Sleep(10 * time.Millisecond)
+
+	if err := dm.osc.BypassGroup(dm.group, false); err != nil {
+		log.Printf("failed to unbypass group: %v", err)
+	} else {
+		dm.groupBypassed = false
 	}
 }
 
@@ -75,15 +70,7 @@ func (dm *DebounceManager) Schedule(layer, clip int, duration time.Duration) {
 		dm.mu.Lock()
 		defer dm.mu.Unlock()
 
-		// Bypass the group
-		if err := dm.osc.BypassGroup(dm.group, true); err != nil {
-			log.Printf("debounce bypass group failed: %v", err)
-		} else {
-			log.Printf("debounce: bypassed group %d", dm.group)
-			dm.groupBypassed = true
-		}
-
-		// Unsolo the group
+		// Unsolo first, then bypass (with small delay)
 		if dm.groupSoloed && dm.soloEnabled {
 			if err := dm.osc.SoloGroup(dm.group, false); err != nil {
 				log.Printf("failed to unsolo group: %v", err)
@@ -91,6 +78,15 @@ func (dm *DebounceManager) Schedule(layer, clip int, duration time.Duration) {
 				log.Printf("solo: group %d unsolo'd", dm.group)
 				dm.groupSoloed = false
 			}
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		// Bypass the group
+		if err := dm.osc.BypassGroup(dm.group, true); err != nil {
+			log.Printf("debounce bypass group failed: %v", err)
+		} else {
+			log.Printf("debounce: bypassed group %d", dm.group)
+			dm.groupBypassed = true
 		}
 
 		dm.timer = nil

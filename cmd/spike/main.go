@@ -43,5 +43,14 @@ func main() {
 		log.Fatalf("Failed to trigger clip: %v", err)
 	}
 
-	fmt.Println("Done! Check Resolume for the text overlay.")
+	// Test solo
+	soloAddr := "/composition/groups/1/solo"
+	soloMsg := osc.NewMessage(soloAddr)
+	soloMsg.Append(int32(1))
+	fmt.Printf("Solo on: %s\n", soloAddr)
+	if err := client.Send(soloMsg); err != nil {
+		log.Fatalf("Failed to send solo: %v", err)
+	}
+
+	fmt.Println("Done! Check Resolume for the text overlay and solo.")
 }

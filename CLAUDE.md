@@ -38,7 +38,18 @@ internal/tui/    - Bubbletea UI
 
 # Set text on clip's Text Block effect
 /composition/layers/1/clips/1/video/effects/textblock/effect/text/params/lines → string
+
+# Group controls
+/composition/groups/{n}/bypassed  → int 0 or 1 (WORKS)
+/composition/groups/{n}/solo      → int 0 or 1 (NOT WORKING - under investigation)
 ```
+
+## OSC Troubleshooting Notes
+
+- Group bypass works with int32 values (0/1)
+- Group solo SHOULD work with int32 values (0/1) per Resolume's OSC input panel, but not responding
+- Tried: float32, toggle-style (always send 1), different message order
+- The OSC message IS being sent (confirmed via logs) but Resolume doesn't respond to solo
 
 ## WebSocket Events
 
