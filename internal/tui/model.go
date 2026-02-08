@@ -28,9 +28,8 @@ type Model struct {
 	eventsChan <-chan eventEntry
 	stateChan  <-chan websocket.ConnectionState
 
-	// For test triggers
-	testTriggerFn     func()
-	testChatTriggerFn func()
+	// Test triggers keyed by number (1-8)
+	testTriggers map[string]func()
 }
 
 type eventEntry struct {
@@ -68,14 +67,14 @@ var (
 )
 
 // NewModel creates a new TUI model.
-func NewModel(eventsChan <-chan eventEntry, stateChan <-chan websocket.ConnectionState, testFn func(), testChatFn func()) Model {
+// testTriggers maps key strings (e.g., "1", "2") to trigger functions.
+func NewModel(eventsChan <-chan eventEntry, stateChan <-chan websocket.ConnectionState, testTriggers map[string]func()) Model {
 	return Model{
-		connectionStatus:  websocket.Disconnected,
-		recentEvents:      make([]eventEntry, 0, maxEvents),
-		eventsChan:        eventsChan,
-		stateChan:         stateChan,
-		testTriggerFn:     testFn,
-		testChatTriggerFn: testChatFn,
+		connectionStatus: websocket.Disconnected,
+		recentEvents:     make([]eventEntry, 0, maxEvents),
+		eventsChan:       eventsChan,
+		stateChan:        stateChan,
+		testTriggers:     testTriggers,
 	}
 }
 
@@ -93,16 +92,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
+		key := msg.String()
+		switch key {
 		case "q", "ctrl+c":
 			return m, tea.Quit
-		case "t":
-			if m.testTriggerFn != nil {
-				m.testTriggerFn()
-			}
-		case "c":
-			if m.testChatTriggerFn != nil {
-				m.testChatTriggerFn()
+		case "1", "2", "3", "4", "5", "6", "7", "8":
+			if fn, ok := m.testTriggers[key]; ok {
+				fn()
 			}
 		}
 
@@ -164,7 +160,7 @@ func (m Model) View() string {
 	b.WriteString("\n")
 
 	// Footer
-	b.WriteString(helpStyle.Render("t: test event | c: test chat | q: quit"))
+	b.WriteString(helpStyle.Render("1:follow 2:sub 3:gift 4:cheer 5:raid 6:chat 7:start 8:end | q:quit"))
 
 	return b.String()
 }

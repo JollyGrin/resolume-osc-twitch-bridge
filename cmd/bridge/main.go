@@ -43,36 +43,83 @@ func main() {
 	tuiEvents := make(tui.EventsChan, 100)
 	tuiState := make(chan websocket.ConnectionState, 10)
 
-	// Test trigger function - triggers text on layer 2 (text overlay) with group solo/debounce
-	testTrigger := func() {
-		text := "TestUser just followed!"
-		// Layer 2 is text overlays in Group 1 (Twitch group)
-		if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
-			log.Printf("Test trigger failed: %v", err)
-		}
-		tuiEvents <- tui.EventEntry("test", text)
-	}
-
-	// Test chat trigger - cycles through sample messages
-	chatMessages := []string{
-		"Hello everyone!",
-		"This stream is awesome!",
-		"LUL that was hilarious",
-		"GG well played",
-		"Can't wait for the next game!",
-	}
-	chatMsgIndex := 0
-	testChatTrigger := func() {
-		userName := fmt.Sprintf("User%02d", rand.Intn(100))
-		message := chatMessages[chatMsgIndex]
-		chatMsgIndex = (chatMsgIndex + 1) % len(chatMessages)
-
-		text := fmt.Sprintf("%s:\n%s", userName, message)
-		// Chat uses layer 3 clip 1 per config.yaml
-		if err := oscClient.TriggerClipWithText(3, 1, text); err != nil {
-			log.Printf("Test chat trigger failed: %v", err)
-		}
-		tuiEvents <- tui.EventEntry("chat", text)
+	// Test triggers map - keyed by number key string
+	testTriggers := map[string]func(){
+		// 1: follow
+		"1": func() {
+			text := fmt.Sprintf("TestUser%02d\nFollowed!", rand.Intn(100))
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test follow failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("follow", text)
+		},
+		// 2: subscribe
+		"2": func() {
+			text := fmt.Sprintf("TestUser%02d\nSubscribed!", rand.Intn(100))
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test subscribe failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("subscribe", text)
+		},
+		// 3: gift_sub
+		"3": func() {
+			total := rand.Intn(10) + 1
+			text := fmt.Sprintf("TestUser%02d\nGifted %d Subs!", rand.Intn(100), total)
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test gift_sub failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("gift_sub", text)
+		},
+		// 4: cheer (random bits)
+		"4": func() {
+			bits := (rand.Intn(50) + 1) * 100 // 100-5000 bits
+			text := fmt.Sprintf("TestUser%02d\nGave %d Bits!", rand.Intn(100), bits)
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test cheer failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("cheer", text)
+		},
+		// 5: raid (random viewers)
+		"5": func() {
+			viewers := rand.Intn(500) + 10
+			text := fmt.Sprintf("TestStreamer\nRaided with %d!", viewers)
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test raid failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("raid", text)
+		},
+		// 6: chat
+		"6": func() {
+			messages := []string{
+				"Hello everyone!",
+				"This stream is awesome!",
+				"LUL that was hilarious",
+				"GG well played",
+			}
+			userName := fmt.Sprintf("Chatter%02d", rand.Intn(100))
+			message := messages[rand.Intn(len(messages))]
+			text := fmt.Sprintf("%s:\n%s", userName, message)
+			if err := oscClient.TriggerClipWithText(3, 1, text); err != nil {
+				log.Printf("Test chat failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("chat", text)
+		},
+		// 7: stream_start
+		"7": func() {
+			text := "Stream is LIVE!"
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test stream_start failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("stream_start", text)
+		},
+		// 8: stream_end
+		"8": func() {
+			text := "Stream ended.\nThanks for watching!"
+			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+				log.Printf("Test stream_end failed: %v", err)
+			}
+			tuiEvents <- tui.EventEntry("stream_end", text)
+		},
 	}
 
 	// Start WebSocket connection
@@ -110,7 +157,7 @@ func main() {
 	}()
 
 	// Create TUI
-	model := tui.NewModel(tuiEvents, tuiState, testTrigger, testChatTrigger)
+	model := tui.NewModel(tuiEvents, tuiState, testTriggers)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	// Handle signals for graceful shutdown
