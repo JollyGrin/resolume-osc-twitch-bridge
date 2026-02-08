@@ -42,21 +42,32 @@ func (dm *DebounceManager) SoloGroupIfNeeded() {
 	// Invalidate any pending timer callbacks (race condition protection)
 	dm.generation++
 
-	// Solo the group (idempotent - safe to call multiple times)
-	if err := dm.osc.SoloGroup(dm.group, true); err != nil {
-		log.Printf("failed to solo group: %v", err)
-	} else {
-		dm.groupSoloed = true
-	}
+	// Set desired state: solo ON, bypass OFF
+	// Send twice for UDP reliability (idempotent, so safe)
+	dm.setGroupActive()
+	time.Sleep(20 * time.Millisecond)
+	dm.setGroupActive() // Redundant send for reliability
 
+	dm.groupSoloed = true
+	dm.groupBypassed = false
+}
+
+// setGroupActive sends bypass=OFF then solo=ON with delay between.
+// Must be called with mutex held.
+func (dm *DebounceManager) setGroupActive() {
+	// Unbypass first, then solo (with delay so Resolume processes each)
+	dm.osc.BypassGroup(dm.group, false)
 	time.Sleep(10 * time.Millisecond)
+	dm.osc.SoloGroup(dm.group, true)
+}
 
-	// Unbypass the group
-	if err := dm.osc.BypassGroup(dm.group, false); err != nil {
-		log.Printf("failed to unbypass group: %v", err)
-	} else {
-		dm.groupBypassed = false
-	}
+// setGroupInactive sends solo=OFF then bypass=ON with delay between.
+// Must be called with mutex held.
+func (dm *DebounceManager) setGroupInactive() {
+	// Unsolo first, then bypass
+	dm.osc.SoloGroup(dm.group, false)
+	time.Sleep(10 * time.Millisecond)
+	dm.osc.BypassGroup(dm.group, true)
 }
 
 // Schedule schedules a group bypass after the given duration.
@@ -86,25 +97,22 @@ func (dm *DebounceManager) Schedule(layer, clip int, duration time.Duration) {
 			return
 		}
 
-		// Unsolo the group (idempotent)
+		// Set desired state: solo OFF, bypass ON
+		// Send twice for UDP reliability (idempotent, so safe)
 		if dm.soloEnabled {
-			if err := dm.osc.SoloGroup(dm.group, false); err != nil {
-				log.Printf("failed to unsolo group: %v", err)
-			} else {
-				dm.groupSoloed = false
-			}
-		}
-
-		time.Sleep(10 * time.Millisecond)
-
-		// Bypass the group
-		if err := dm.osc.BypassGroup(dm.group, true); err != nil {
-			log.Printf("debounce bypass group failed: %v", err)
+			dm.setGroupInactive()
+			time.Sleep(20 * time.Millisecond)
+			dm.setGroupInactive() // Redundant send for reliability
+			log.Printf("debounce: group %d set inactive (solo=OFF, bypass=ON)", dm.group)
 		} else {
-			log.Printf("debounce: bypassed group %d", dm.group)
-			dm.groupBypassed = true
+			// Just bypass if solo is disabled
+			dm.osc.BypassGroup(dm.group, true)
+			time.Sleep(20 * time.Millisecond)
+			dm.osc.BypassGroup(dm.group, true)
 		}
 
+		dm.groupSoloed = false
+		dm.groupBypassed = true
 		dm.timer = nil
 	})
 }
@@ -121,16 +129,17 @@ func (dm *DebounceManager) CancelAll() {
 		dm.timer = nil
 	}
 
-	// Bypass group
-	if err := dm.osc.BypassGroup(dm.group, true); err != nil {
-		log.Printf("shutdown bypass group failed: %v", err)
+	// Set inactive state with redundancy for reliability
+	if dm.soloEnabled {
+		dm.setGroupInactive()
+		time.Sleep(20 * time.Millisecond)
+		dm.setGroupInactive()
+	} else {
+		dm.osc.BypassGroup(dm.group, true)
+		time.Sleep(20 * time.Millisecond)
+		dm.osc.BypassGroup(dm.group, true)
 	}
 
-	// Unsolo group
-	if dm.soloEnabled {
-		if err := dm.osc.SoloGroup(dm.group, false); err != nil {
-			log.Printf("shutdown unsolo failed: %v", err)
-		}
-		dm.groupSoloed = false
-	}
+	dm.groupSoloed = false
+	dm.groupBypassed = true
 }
