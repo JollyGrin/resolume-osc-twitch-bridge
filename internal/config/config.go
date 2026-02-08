@@ -53,8 +53,9 @@ type WebSocketConfig struct {
 
 // OSCConfig holds OSC connection settings.
 type OSCConfig struct {
-	Host string `yaml:"host"`
-	Port int    `yaml:"port"`
+	Host  string   `yaml:"host"`
+	Port  int      `yaml:"port"`
+	Delay Duration `yaml:"delay,omitempty"` // Delay between OSC messages (default 20ms)
 }
 
 // EventMapping defines how an event type maps to Resolume OSC.

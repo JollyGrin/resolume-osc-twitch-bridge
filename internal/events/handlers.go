@@ -2,6 +2,7 @@ package events
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/waterhouse/resolume-twitch-osc/internal/config"
@@ -47,20 +48,24 @@ func (h *Handler) Handle(event *Event) (string, error) {
 	var firstText string
 	var triggeredClips []struct{ layer, clip int }
 
-	for _, action := range mapping.Actions {
+	for i, action := range mapping.Actions {
+		log.Printf("DEBUG: Processing action %d for %s: layer=%d clip=%d template=%q", i, event.Type, action.Layer, action.Clip, action.Template)
 		if action.Template != "" {
 			text := h.formatText(event, action.Template)
 			if text == "" {
+				log.Printf("DEBUG: Skipping action %d - empty text after formatting", i)
 				continue
 			}
 			if firstText == "" {
 				firstText = text
 			}
+			log.Printf("DEBUG: Triggering clip with text: layer=%d clip=%d", action.Layer, action.Clip)
 			if err := h.osc.TriggerClipWithText(action.Layer, action.Clip, text); err != nil {
 				return "", fmt.Errorf("sending OSC for %s: %w", event.Type, err)
 			}
 		} else {
 			// No template, just trigger the clip
+			log.Printf("DEBUG: Triggering clip (no text): layer=%d clip=%d", action.Layer, action.Clip)
 			if err := h.osc.TriggerClip(action.Layer, action.Clip); err != nil {
 				return "", fmt.Errorf("triggering clip for %s: %w", event.Type, err)
 			}
@@ -94,6 +99,16 @@ func (h *Handler) TriggerTestEvent(layer, clip int, text string) (string, error)
 	h.debounceManager.Schedule(layer, clip, h.defaults.Debounce.Duration())
 
 	return text, nil
+}
+
+// HandleTestEvent creates a synthetic event and processes it through the full handler.
+// This ensures all actions from the config are triggered.
+func (h *Handler) HandleTestEvent(eventType string, data interface{}) (string, error) {
+	event := &Event{
+		Type: eventType,
+		Data: data,
+	}
+	return h.Handle(event)
 }
 
 // formatText applies the template for the event type.

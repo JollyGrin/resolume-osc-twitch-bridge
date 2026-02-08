@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// Initialize OSC client
-	oscClient := osc.NewClient(cfg.OSC.Host, cfg.OSC.Port)
+	oscClient := osc.NewClient(cfg.OSC.Host, cfg.OSC.Port, cfg.OSC.Delay.Duration())
 
 	// Initialize event handler
 	eventHandler := events.NewHandler(oscClient, cfg.Mappings, cfg.Defaults)
@@ -47,34 +47,38 @@ func main() {
 	testTriggers := map[string]func(){
 		// 1: follow
 		"1": func() {
-			text := fmt.Sprintf("TestUser%02d\nFollowed!", rand.Intn(100))
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			userName := fmt.Sprintf("TestUser%02d", rand.Intn(100))
+			text, err := eventHandler.HandleTestEvent("follow", events.FollowEvent{UserName: userName})
+			if err != nil {
 				log.Printf("Test follow failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("follow", text)
 		},
 		// 2: subscribe
 		"2": func() {
-			text := fmt.Sprintf("TestUser%02d\nSubscribed!", rand.Intn(100))
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			userName := fmt.Sprintf("TestUser%02d", rand.Intn(100))
+			text, err := eventHandler.HandleTestEvent("subscribe", events.SubscribeEvent{UserName: userName, Tier: "1000"})
+			if err != nil {
 				log.Printf("Test subscribe failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("subscribe", text)
 		},
 		// 3: gift_sub
 		"3": func() {
+			userName := fmt.Sprintf("TestUser%02d", rand.Intn(100))
 			total := rand.Intn(10) + 1
-			text := fmt.Sprintf("TestUser%02d\nGifted %d Subs!", rand.Intn(100), total)
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			text, err := eventHandler.HandleTestEvent("gift_sub", events.GiftSubEvent{UserName: userName, Total: total, Tier: "1000"})
+			if err != nil {
 				log.Printf("Test gift_sub failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("gift_sub", text)
 		},
 		// 4: cheer (random bits)
 		"4": func() {
+			userName := fmt.Sprintf("TestUser%02d", rand.Intn(100))
 			bits := (rand.Intn(50) + 1) * 100 // 100-5000 bits
-			text := fmt.Sprintf("TestUser%02d\nGave %d Bits!", rand.Intn(100), bits)
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			text, err := eventHandler.HandleTestEvent("cheer", events.CheerEvent{UserName: userName, Bits: bits, Message: "Woohoo!"})
+			if err != nil {
 				log.Printf("Test cheer failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("cheer", text)
@@ -82,8 +86,8 @@ func main() {
 		// 5: raid (random viewers)
 		"5": func() {
 			viewers := rand.Intn(500) + 10
-			text := fmt.Sprintf("TestStreamer\nRaided with %d!", viewers)
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			text, err := eventHandler.HandleTestEvent("raid", events.RaidEvent{FromBroadcasterUserName: "TestStreamer", Viewers: viewers})
+			if err != nil {
 				log.Printf("Test raid failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("raid", text)
@@ -98,24 +102,27 @@ func main() {
 			}
 			userName := fmt.Sprintf("Chatter%02d", rand.Intn(100))
 			message := messages[rand.Intn(len(messages))]
-			text := fmt.Sprintf("%s:\n%s", userName, message)
-			if err := oscClient.TriggerClipWithText(3, 1, text); err != nil {
+			text, err := eventHandler.HandleTestEvent("chat", events.ChatEvent{
+				ChatterUserName: userName,
+				Message:         events.ChatMessage{Text: message},
+			})
+			if err != nil {
 				log.Printf("Test chat failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("chat", text)
 		},
 		// 7: stream_start
 		"7": func() {
-			text := "Stream is LIVE!"
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			text, err := eventHandler.HandleTestEvent("stream_start", events.StreamStartEvent{})
+			if err != nil {
 				log.Printf("Test stream_start failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("stream_start", text)
 		},
 		// 8: stream_end
 		"8": func() {
-			text := "Stream ended.\nThanks for watching!"
-			if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
+			text, err := eventHandler.HandleTestEvent("stream_end", events.StreamEndEvent{})
+			if err != nil {
 				log.Printf("Test stream_end failed: %v", err)
 			}
 			tuiEvents <- tui.EventEntry("stream_end", text)

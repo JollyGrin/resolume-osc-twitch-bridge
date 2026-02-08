@@ -4,20 +4,38 @@ package osc
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hypebeast/go-osc/osc"
 )
 
+// DefaultDelay is the default delay between OSC messages.
+const DefaultDelay = 20 * time.Millisecond
+
 // Client wraps the go-osc client for sending messages to Resolume.
 type Client struct {
 	client *osc.Client
+	delay  time.Duration
 }
 
 // NewClient creates a new OSC client connected to the specified host and port.
-func NewClient(host string, port int) *Client {
+func NewClient(host string, port int, delay time.Duration) *Client {
+	if delay == 0 {
+		delay = DefaultDelay
+	}
 	return &Client{
 		client: osc.NewClient(host, port),
+		delay:  delay,
 	}
+}
+
+// sendWithDelay sends a message and waits for the configured delay.
+func (c *Client) sendWithDelay(msg *osc.Message) error {
+	if err := c.client.Send(msg); err != nil {
+		return err
+	}
+	time.Sleep(c.delay)
+	return nil
 }
 
 // SendText sends a text value to the specified OSC address.
@@ -25,7 +43,7 @@ func (c *Client) SendText(address, text string) error {
 	msg := osc.NewMessage(address)
 	msg.Append(text)
 
-	if err := c.client.Send(msg); err != nil {
+	if err := c.sendWithDelay(msg); err != nil {
 		log.Printf("OSC send text failed: %v", err)
 		return fmt.Errorf("sending text to %s: %w", address, err)
 	}
@@ -37,7 +55,7 @@ func (c *Client) SendTrigger(address string) error {
 	msg := osc.NewMessage(address)
 	msg.Append(int32(1))
 
-	if err := c.client.Send(msg); err != nil {
+	if err := c.sendWithDelay(msg); err != nil {
 		log.Printf("OSC send trigger failed: %v", err)
 		return fmt.Errorf("sending trigger to %s: %w", address, err)
 	}
@@ -70,7 +88,7 @@ func (c *Client) DisconnectClip(layer, clip int) error {
 	msg := osc.NewMessage(addr)
 	msg.Append(int32(0))
 
-	if err := c.client.Send(msg); err != nil {
+	if err := c.sendWithDelay(msg); err != nil {
 		log.Printf("OSC disconnect clip failed: %v", err)
 		return fmt.Errorf("disconnecting clip at %s: %w", addr, err)
 	}
@@ -88,7 +106,7 @@ func (c *Client) SoloGroup(group int, on bool) error {
 	}
 	msg.Append(val)
 
-	if err := c.client.Send(msg); err != nil {
+	if err := c.sendWithDelay(msg); err != nil {
 		log.Printf("OSC solo group failed: %v", err)
 		return fmt.Errorf("setting solo on group %d: %w", group, err)
 	}
@@ -105,7 +123,7 @@ func (c *Client) BypassGroup(group int, bypass bool) error {
 	}
 	msg.Append(val)
 
-	if err := c.client.Send(msg); err != nil {
+	if err := c.sendWithDelay(msg); err != nil {
 		log.Printf("OSC bypass group failed: %v", err)
 		return fmt.Errorf("setting bypass on group %d: %w", group, err)
 	}
