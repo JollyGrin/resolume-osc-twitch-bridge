@@ -78,7 +78,7 @@ func (c *Client) DisconnectClip(layer, clip int) error {
 }
 
 // SoloGroup sets solo state for a Resolume group.
-// Resolume expects: /composition/groups/{n}/solo with int 0 or 1
+// Send 1 to solo, 0 to unsolo.
 func (c *Client) SoloGroup(group int, on bool) error {
 	addr := fmt.Sprintf("/composition/groups/%d/solo", group)
 	msg := osc.NewMessage(addr)

@@ -10,7 +10,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"time"
 
 	"github.com/hypebeast/go-osc/osc"
 )
@@ -18,39 +18,39 @@ import (
 func main() {
 	host := "127.0.0.1"
 	port := 7000
+	soloAddr := "/composition/groups/1/solo"
 
-	fmt.Printf("Connecting to Resolume OSC at %s:%d\n", host, port)
+	fmt.Printf("Testing OSC solo toggle at %s:%d\n", host, port)
 
 	client := osc.NewClient(host, port)
 
-	// Set text on Layer 1, Clip 1
-	textAddr := "/composition/layers/1/clips/1/video/effects/textblock/effect/text/params/lines"
-	textMsg := osc.NewMessage(textAddr)
-	textMsg.Append("Test from Go!")
+	// Theory: Resolume ignores repeated 1s, but 0 resets it
 
-	fmt.Printf("Sending text: %s\n", textAddr)
-	if err := client.Send(textMsg); err != nil {
-		log.Fatalf("Failed to send text: %v", err)
-	}
+	// Step 1: Send 1 (should turn ON)
+	fmt.Println("Step 1: Sending 1 (should turn solo ON)")
+	msg1 := osc.NewMessage(soloAddr)
+	msg1.Append(int32(1))
+	client.Send(msg1)
 
-	// Trigger the clip
-	triggerAddr := "/composition/layers/1/clips/1/connect"
-	triggerMsg := osc.NewMessage(triggerAddr)
-	triggerMsg.Append(int32(1))
+	fmt.Println("Waiting 3 seconds... (solo should be ON)")
+	time.Sleep(3 * time.Second)
 
-	fmt.Printf("Triggering clip: %s\n", triggerAddr)
-	if err := client.Send(triggerMsg); err != nil {
-		log.Fatalf("Failed to trigger clip: %v", err)
-	}
+	// Step 2: Send 0 (reset/release - might toggle OFF)
+	fmt.Println("Step 2: Sending 0 (release/reset)")
+	msg2 := osc.NewMessage(soloAddr)
+	msg2.Append(int32(0))
+	client.Send(msg2)
 
-	// Test solo
-	soloAddr := "/composition/groups/1/solo"
-	soloMsg := osc.NewMessage(soloAddr)
-	soloMsg.Append(int32(1))
-	fmt.Printf("Solo on: %s\n", soloAddr)
-	if err := client.Send(soloMsg); err != nil {
-		log.Fatalf("Failed to send solo: %v", err)
-	}
+	fmt.Println("Waiting 1 second...")
+	time.Sleep(1 * time.Second)
 
-	fmt.Println("Done! Check Resolume for the text overlay and solo.")
+	// Step 3: Send 1 again (should this work now?)
+	fmt.Println("Step 3: Sending 1 again (should turn solo ON again)")
+	msg3 := osc.NewMessage(soloAddr)
+	msg3.Append(int32(1))
+	client.Send(msg3)
+
+	fmt.Println("Done! Watch what happens at each step.")
+
+	fmt.Println("Done! Solo should have toggled ON then OFF.")
 }

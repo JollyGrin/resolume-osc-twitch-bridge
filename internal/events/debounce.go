@@ -10,13 +10,14 @@ import (
 
 // DebounceManager handles debounced group bypass and solo state.
 type DebounceManager struct {
-	osc          *osc.Client
-	timer        *time.Timer
-	groupSoloed  bool // Whether the group is currently solo'd
-	groupBypassed bool // Whether the group is currently bypassed
-	group        int  // Resolume group number
-	soloEnabled  bool // Whether solo behavior is enabled
-	mu           sync.Mutex
+	osc           *osc.Client
+	timer         *time.Timer
+	generation    uint64 // Incremented on each Schedule to invalidate stale callbacks
+	groupSoloed   bool   // Whether the group is currently solo'd
+	groupBypassed bool   // Whether the group is currently bypassed
+	group         int    // Resolume group number
+	soloEnabled   bool   // Whether solo behavior is enabled
+	mu            sync.Mutex
 }
 
 // NewDebounceManager creates a new debounce manager.
@@ -38,7 +39,10 @@ func (dm *DebounceManager) SoloGroupIfNeeded() {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
 
-	// Solo first, then unbypass (with small delay to avoid UDP packet issues)
+	// Invalidate any pending timer callbacks (race condition protection)
+	dm.generation++
+
+	// Solo the group (idempotent - safe to call multiple times)
 	if err := dm.osc.SoloGroup(dm.group, true); err != nil {
 		log.Printf("failed to solo group: %v", err)
 	} else {
@@ -47,6 +51,7 @@ func (dm *DebounceManager) SoloGroupIfNeeded() {
 
 	time.Sleep(10 * time.Millisecond)
 
+	// Unbypass the group
 	if err := dm.osc.BypassGroup(dm.group, false); err != nil {
 		log.Printf("failed to unbypass group: %v", err)
 	} else {
@@ -65,21 +70,32 @@ func (dm *DebounceManager) Schedule(layer, clip int, duration time.Duration) {
 		dm.timer.Stop()
 	}
 
+	// Increment generation - this is the authoritative generation for this timer
+	dm.generation++
+	gen := dm.generation
+	log.Printf("solo: Schedule called, new gen=%d, duration=%v", gen, duration)
+
 	// Schedule new timer
 	dm.timer = time.AfterFunc(duration, func() {
 		dm.mu.Lock()
 		defer dm.mu.Unlock()
 
-		// Unsolo first, then bypass (with small delay)
-		if dm.groupSoloed && dm.soloEnabled {
+		// Check if this callback is stale (a newer Schedule superseded us)
+		if gen != dm.generation {
+			log.Printf("debounce: stale callback ignored (gen %d != current %d)", gen, dm.generation)
+			return
+		}
+
+		// Unsolo the group (idempotent)
+		if dm.soloEnabled {
 			if err := dm.osc.SoloGroup(dm.group, false); err != nil {
 				log.Printf("failed to unsolo group: %v", err)
 			} else {
-				log.Printf("solo: group %d unsolo'd", dm.group)
 				dm.groupSoloed = false
 			}
-			time.Sleep(10 * time.Millisecond)
 		}
+
+		time.Sleep(10 * time.Millisecond)
 
 		// Bypass the group
 		if err := dm.osc.BypassGroup(dm.group, true); err != nil {
@@ -110,8 +126,8 @@ func (dm *DebounceManager) CancelAll() {
 		log.Printf("shutdown bypass group failed: %v", err)
 	}
 
-	// Unsolo group if it was solo'd
-	if dm.groupSoloed && dm.soloEnabled {
+	// Unsolo group
+	if dm.soloEnabled {
 		if err := dm.osc.SoloGroup(dm.group, false); err != nil {
 			log.Printf("shutdown unsolo failed: %v", err)
 		}
