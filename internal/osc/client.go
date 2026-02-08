@@ -76,3 +76,37 @@ func (c *Client) DisconnectClip(layer, clip int) error {
 	}
 	return nil
 }
+
+// SoloGroup toggles solo for a Resolume group.
+func (c *Client) SoloGroup(group int, on bool) error {
+	addr := fmt.Sprintf("/composition/groups/%d/solo", group)
+	msg := osc.NewMessage(addr)
+	val := int32(0)
+	if on {
+		val = 1
+	}
+	msg.Append(val)
+
+	if err := c.client.Send(msg); err != nil {
+		log.Printf("OSC solo group failed: %v", err)
+		return fmt.Errorf("setting solo on group %d: %w", group, err)
+	}
+	return nil
+}
+
+// BypassGroup toggles bypass for a Resolume group.
+func (c *Client) BypassGroup(group int, bypass bool) error {
+	addr := fmt.Sprintf("/composition/groups/%d/bypassed", group)
+	msg := osc.NewMessage(addr)
+	val := int32(0)
+	if bypass {
+		val = 1
+	}
+	msg.Append(val)
+
+	if err := c.client.Send(msg); err != nil {
+		log.Printf("OSC bypass group failed: %v", err)
+		return fmt.Errorf("setting bypass on group %d: %w", group, err)
+	}
+	return nil
+}

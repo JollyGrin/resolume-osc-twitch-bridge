@@ -19,7 +19,9 @@ type Config struct {
 
 // Defaults holds default values for event mappings.
 type Defaults struct {
-	Debounce Duration `yaml:"debounce"`
+	Debounce    Duration `yaml:"debounce"`
+	Group       int      `yaml:"group"`         // Resolume group number for event layers
+	SoloOnEvent bool     `yaml:"solo_on_event"` // Enable group solo behavior
 }
 
 // Duration wraps time.Duration for YAML unmarshaling.

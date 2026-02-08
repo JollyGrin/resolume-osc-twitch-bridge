@@ -9,6 +9,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,13 +43,36 @@ func main() {
 	tuiEvents := make(tui.EventsChan, 100)
 	tuiState := make(chan websocket.ConnectionState, 10)
 
-	// Test trigger function
+	// Test trigger function - triggers text on layer 2 (text overlay) with group solo/debounce
 	testTrigger := func() {
 		text := "TestUser just followed!"
-		if err := oscClient.TriggerClipWithText(1, 1, text); err != nil {
+		// Layer 2 is text overlays in Group 1 (Twitch group)
+		if _, err := eventHandler.TriggerTestEvent(2, 1, text); err != nil {
 			log.Printf("Test trigger failed: %v", err)
 		}
 		tuiEvents <- tui.EventEntry("test", text)
+	}
+
+	// Test chat trigger - cycles through sample messages
+	chatMessages := []string{
+		"Hello everyone!",
+		"This stream is awesome!",
+		"LUL that was hilarious",
+		"GG well played",
+		"Can't wait for the next game!",
+	}
+	chatMsgIndex := 0
+	testChatTrigger := func() {
+		userName := fmt.Sprintf("User%02d", rand.Intn(100))
+		message := chatMessages[chatMsgIndex]
+		chatMsgIndex = (chatMsgIndex + 1) % len(chatMessages)
+
+		text := fmt.Sprintf("%s:\n%s", userName, message)
+		// Chat uses layer 3 clip 1 per config.yaml
+		if err := oscClient.TriggerClipWithText(3, 1, text); err != nil {
+			log.Printf("Test chat trigger failed: %v", err)
+		}
+		tuiEvents <- tui.EventEntry("chat", text)
 	}
 
 	// Start WebSocket connection
@@ -86,7 +110,7 @@ func main() {
 	}()
 
 	// Create TUI
-	model := tui.NewModel(tuiEvents, tuiState, testTrigger)
+	model := tui.NewModel(tuiEvents, tuiState, testTrigger, testChatTrigger)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	// Handle signals for graceful shutdown

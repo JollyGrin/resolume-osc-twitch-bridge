@@ -28,8 +28,9 @@ type Model struct {
 	eventsChan <-chan eventEntry
 	stateChan  <-chan websocket.ConnectionState
 
-	// For test trigger
-	testTriggerFn func()
+	// For test triggers
+	testTriggerFn     func()
+	testChatTriggerFn func()
 }
 
 type eventEntry struct {
@@ -67,13 +68,14 @@ var (
 )
 
 // NewModel creates a new TUI model.
-func NewModel(eventsChan <-chan eventEntry, stateChan <-chan websocket.ConnectionState, testFn func()) Model {
+func NewModel(eventsChan <-chan eventEntry, stateChan <-chan websocket.ConnectionState, testFn func(), testChatFn func()) Model {
 	return Model{
-		connectionStatus: websocket.Disconnected,
-		recentEvents:     make([]eventEntry, 0, maxEvents),
-		eventsChan:       eventsChan,
-		stateChan:        stateChan,
-		testTriggerFn:    testFn,
+		connectionStatus:  websocket.Disconnected,
+		recentEvents:      make([]eventEntry, 0, maxEvents),
+		eventsChan:        eventsChan,
+		stateChan:         stateChan,
+		testTriggerFn:     testFn,
+		testChatTriggerFn: testChatFn,
 	}
 }
 
@@ -97,6 +99,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "t":
 			if m.testTriggerFn != nil {
 				m.testTriggerFn()
+			}
+		case "c":
+			if m.testChatTriggerFn != nil {
+				m.testChatTriggerFn()
 			}
 		}
 
@@ -158,7 +164,7 @@ func (m Model) View() string {
 	b.WriteString("\n")
 
 	// Footer
-	b.WriteString(helpStyle.Render("t: test event | q: quit"))
+	b.WriteString(helpStyle.Render("t: test event | c: test chat | q: quit"))
 
 	return b.String()
 }

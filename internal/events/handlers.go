@@ -22,7 +22,7 @@ func NewHandler(oscClient *osc.Client, mappings map[string]config.EventMapping, 
 		osc:             oscClient,
 		mappings:        mappings,
 		defaults:        defaults,
-		debounceManager: NewDebounceManager(oscClient),
+		debounceManager: NewDebounceManager(oscClient, defaults.Group, defaults.SoloOnEvent),
 	}
 }
 
@@ -37,6 +37,11 @@ func (h *Handler) Handle(event *Event) (string, error) {
 	mapping, ok := h.mappings[event.Type]
 	if !ok {
 		return "", nil // No mapping for this event type
+	}
+
+	// Solo group for non-chat events that should return to scene
+	if event.Type != "chat" && mapping.ShouldReturnToScene() {
+		h.debounceManager.SoloGroupIfNeeded()
 	}
 
 	var firstText string
@@ -72,6 +77,23 @@ func (h *Handler) Handle(event *Event) (string, error) {
 	}
 
 	return firstText, nil
+}
+
+// TriggerTestEvent triggers a test event with proper solo/debounce behavior.
+// Returns the text that was displayed.
+func (h *Handler) TriggerTestEvent(layer, clip int, text string) (string, error) {
+	// Solo and unbypass the group
+	h.debounceManager.SoloGroupIfNeeded()
+
+	// Trigger the clip with text
+	if err := h.osc.TriggerClipWithText(layer, clip, text); err != nil {
+		return "", fmt.Errorf("triggering test clip: %w", err)
+	}
+
+	// Schedule debounce
+	h.debounceManager.Schedule(layer, clip, h.defaults.Debounce.Duration())
+
+	return text, nil
 }
 
 // formatText applies the template for the event type.
