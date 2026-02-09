@@ -42,6 +42,11 @@ func main() {
 	// Channels for TUI
 	tuiEvents := make(tui.EventsChan, 100)
 	tuiState := make(chan websocket.ConnectionState, 10)
+	tuiLogs := make(tui.LogsChan, 200)
+
+	// Redirect log output to TUI
+	log.SetOutput(tui.NewLogWriter(tuiLogs))
+	log.SetFlags(0) // Remove default timestamp, we add our own
 
 	// Test triggers map - keyed by number key string
 	testTriggers := map[string]func(){
@@ -164,7 +169,7 @@ func main() {
 	}()
 
 	// Create TUI
-	model := tui.NewModel(tuiEvents, tuiState, testTriggers)
+	model := tui.NewModel(tuiEvents, tuiState, tuiLogs, testTriggers)
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	// Handle signals for graceful shutdown
