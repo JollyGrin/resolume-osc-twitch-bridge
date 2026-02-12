@@ -6,10 +6,13 @@ websocket:
 osc:
   host: "127.0.0.1"
   port: 7000
+  delay: "20ms" # Delay between OSC messages (prevents Resolume from dropping messages)
 
 # Default settings for event mappings
 defaults:
-  debounce: "8s" # Time before clips are disconnected/cleared
+  debounce: "5s" # Time before clips are bypassed
+  group: 1 # Resolume group number for event layers (Layer 1+2)
+  solo_on_event: true # Solo group when events trigger, unsolo when debounce expires
 
 # Event mappings: event type -> OSC actions
 #
@@ -19,45 +22,59 @@ defaults:
 #     - template:    Text template with {field} placeholders (optional)
 #   debounce:        Override default debounce duration (optional, e.g. "15s")
 #   return_to_scene: Set to false to disable auto-disconnect (default: true)
+# Layer structure:
+#   Group "Twitch" (solo'd on events):
+#     Layer 1: Event text overlays
+#     Layer 2: Event backgrounds (different clip per event type)
+#   Layer 3: Chat text (outside group, hidden when events solo)
+#   Layer 4+: Manual clips
 mappings:
   follow:
     actions:
-      - layer: 1
-        clip: 1
-        template: "{user_name}\nFollowed!"
       - layer: 2
         clip: 1
+        template: "{user_name}\nFollowed!"
+      - layer: 1
+        clip: 2 # Follow background
 
   subscribe:
     actions:
-      - layer: 1
+      - layer: 2
         clip: 1
         template: "{user_name}\nSubscribed!"
+      - layer: 1
+        clip: 1 # Subscribe background
 
   gift_sub:
     actions:
-      - layer: 1
+      - layer: 2
         clip: 1
         template: "{user_name}\nGifted {total} Subs!"
+      - layer: 1
+        clip: 1 # Gift sub background
 
   cheer:
     actions:
-      - layer: 1
+      - layer: 2
         clip: 1
         template: "{user_name}\nGave {bits} Bits!"
+      - layer: 1
+        clip: 1 # Cheer background
 
   raid:
     debounce: "15s" # Raids stay visible longer
     actions:
-      - layer: 1
+      - layer: 2
         clip: 1
         template: "{from_broadcaster_user_name}\nRaided with {viewers}!"
+      - layer: 1
+        clip: 1 # Raid background
 
   chat:
-    return_to_scene: false # Chat stays visible until next message
+    return_to_scene: false # Chat stays visible until next message, no solo
     actions:
-      - layer: 1
-        clip: 2
+      - layer: 3
+        clip: 1
         template: "{chatter_user_name}:\n{message_text}"
 
   stream_start:
@@ -65,9 +82,13 @@ mappings:
       - layer: 1
         clip: 1
         template: "Stream is LIVE!"
+      - layer: 2
+        clip: 6 # Stream start background
 
   stream_end:
     actions:
       - layer: 1
         clip: 1
         template: "Stream ended. Thanks for watching!"
+      - layer: 2
+        clip: 7 # Stream end background
